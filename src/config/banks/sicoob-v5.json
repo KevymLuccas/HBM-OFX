@@ -1,0 +1,241 @@
+{
+  "version": "5.0",
+  "name": "SICOOB",
+  "description": "SISBR - Extrato de Conta Corrente (formato tabela)",
+  "locale": "pt-BR",
+  "encoding": "utf-8",
+  "header": {
+    "patterns": {
+      "coop": {
+        "regex": "Cooperativa:\\s*(\\d+-\\d+)\\s*/\\s*([A-ZÇÃÕÁÉÍÓÚ\\s]+)",
+        "groups": {
+          "coop_id": 1,
+          "coop_name": 2
+        }
+      },
+      "account": {
+        "regex": "Conta:\\s*(\\d+-\\d+)\\s*/\\s*([A-ZÇÃÕÁÉÍÓÚ0-9\\s\\.]+)",
+        "groups": {
+          "account_number": 1,
+          "account_holder": 2
+        }
+      },
+      "period": {
+        "regex": "Periodo:\\s*(\\d{2}/\\d{2}/\\d{4})\\s*-\\s*(\\d{2}/\\d{2}/\\d{4})",
+        "groups": {
+          "start_date": 1,
+          "end_date": 2
+        }
+      }
+    }
+  },
+  "section_movements": {
+    "starts_after": "HISTÓRICO DE MOVIMENTAÇÃO",
+    "transaction_anchor_regex": "^\\s*(\\d{2}/\\d{2})\\s+([\\dPix]+)\\s+(.+?)\\s+(R\\$\\s*[\\d.,]+)\\s*$",
+    "skip_if_name_startswith": [
+      "Data",
+      "Documento",
+      "Histórico",
+      "Valor",
+      "SALDO DO DIA",
+      "SALDO BLOQUEADO",
+      "SALDO ANTERIOR",
+      "RESUMO",
+      "Saldo em conta",
+      "Limite cheque",
+      "Saldo disponível",
+      "Saldo bloqueado",
+      "Vencimento",
+      "Taxa cheque",
+      "INFORMAÇÕES",
+      "SAC:"
+    ],
+    "multiline_capture": {
+      "until_next_anchor": true,
+      "collapse_whitespace": true
+    },
+    "doc_reference": {
+      "regex": "\\d{7,}",
+      "take": "first"
+    },
+    "date": {
+      "format_in": "DD/MM",
+      "year_hint": "from_period"
+    },
+    "amount": {
+      "locale": "pt-BR",
+      "sign_by_keyword": {
+        "credit": [
+          "CRÉD",
+          "CRED.",
+          "PIX RECEBIDO",
+          "TRANSF.RECEBIDA",
+          "ESTORNO PIX EMITIDO",
+          "CRED.TRANSF"
+        ],
+        "debit": [
+          "DÉB",
+          "TARIFA",
+          "PIX EMITIDO",
+          "PIX ENVIADO",
+          "DEB."
+        ]
+      }
+    }
+  },
+  "mapping": {
+    "trntype": {
+      "rules": [
+        {
+          "contains": ["PIX RECEBIDO", "PIX ENVIADO", "PIX EMITIDO", "TRANSF.RECEBIDA", "DÉBITO DEVOLUÇÃO PIX"],
+          "ofx": "XFER"
+        },
+        {
+          "contains": ["CRÉD.TED", "CRED.TED", "TED"],
+          "ofx": "DIRECTDEP"
+        },
+        {
+          "contains": ["CRÉD.LIQUIDAÇÃO", "CRED.LIQUIDAÇÃO"],
+          "ofx": "CREDIT"
+        },
+        {
+          "contains": ["DÉB.TIT.COMPE", "DEB.TIT.COMPE", "DÉB.TÍTULO"],
+          "ofx": "CHECK"
+        },
+        {
+          "contains": ["TARIFA", "IOF"],
+          "ofx": "FEE"
+        },
+        {
+          "contains": ["DÉB.TRANSF", "DEB.TRANSF"],
+          "ofx": "XFER"
+        },
+        {
+          "contains": ["DÉB.CONV.TRIBUTOS", "DEB.CONV.TRIBUTOS"],
+          "ofx": "PAYMENT"
+        },
+        {
+          "contains": ["DÉB. PAGAMENTO DE BOLETO", "DEB. PAGAMENTO"],
+          "ofx": "PAYMENT"
+        },
+        {
+          "contains": ["ESTORNO"],
+          "ofx": "OTHER"
+        },
+        {
+          "ofx": "OTHER"
+        }
+      ]
+    },
+    "fields": {
+      "date_iso": {
+        "source": "date",
+        "transform": "to_iso_date",
+        "params": {
+          "format": "DD/MM",
+          "year_from_period": true
+        }
+      },
+      "name": {
+        "source": "name",
+        "transform": "truncate",
+        "params": {
+          "max_length": 100
+        }
+      },
+      "memo": {
+        "source": "template",
+        "template": "{name}{multiline_details}{ | DOC: {doc_ref}}",
+        "params": {
+          "name": "name",
+          "multiline_details": "multiline_details",
+          "doc_ref": "doc_ref"
+        }
+      },
+      "amount_float": {
+        "source": "amount",
+        "transform": "to_float",
+        "params": {
+          "locale": "pt-BR",
+          "sign_from_keywords": {
+            "credit": ["CRÉD", "CRED.", "PIX RECEBIDO", "TRANSF.RECEBIDA", "ESTORNO PIX EMITIDO"],
+            "debit": ["DÉB", "TARIFA", "PIX EMITIDO", "DEB."]
+          }
+        }
+      },
+      "credit_bool": {
+        "source": "keywords",
+        "transform": "contains_any",
+        "params": {
+          "keywords": ["CRÉD", "CRED.", "PIX RECEBIDO", "TRANSF.RECEBIDA", "ESTORNO PIX EMITIDO"],
+          "return_boolean": true
+        }
+      },
+      "doc_ref": {
+        "source": "document",
+        "transform": "extract",
+        "params": {
+          "regex": "\\d{7,}",
+          "group": 0
+        }
+      }
+    },
+    "fitid": {
+      "method": "sha1",
+      "template": "{date_iso}_{amount_float}_{name}_{doc_ref}_{index}",
+      "truncate": 32
+    }
+  },
+  "balance": {
+    "final": {
+      "regex": "Saldo em conta corrente:\\s*R\\$\\s*([\\d.,]+)",
+      "date_source": "last_transaction",
+      "amount_group": 1,
+      "signed_amount": "use_value_as_is"
+    },
+    "initial": {
+      "infer_as": "final - sum(transactions)"
+    }
+  },
+  "ofx": {
+    "currency": "BRL",
+    "accttype": "CHECKING",
+    "org": "SICOOB",
+    "bankid": "756",
+    "branchid": {
+      "source": "header.coop.coop_id",
+      "transform": "remove_punctuation"
+    },
+    "acctid": {
+      "source": "header.account.account_number",
+      "transform": "remove_punctuation"
+    },
+    "dtstart": {
+      "source": "header.period.start_date"
+    },
+    "dtend": {
+      "source": "header.period.end_date"
+    },
+    "transactions": {
+      "dtposted": "fields.date_iso",
+      "trntype": "trntype",
+      "trnamt": "fields.amount_float",
+      "fitid": "fitid",
+      "name": "fields.name",
+      "memo": "fields.memo"
+    },
+    "ledgerbal": {
+      "balamt": "balance.final.amount",
+      "dtasof": "balance.final.date"
+    },
+    "availbal": {
+      "balamt": "balance.final.amount",
+      "dtasof": "balance.final.date"
+    }
+  },
+  "validation": {
+    "min_transactions": 1,
+    "period_must_cover_transactions": true,
+    "memo_must_not_be_empty": true
+  }
+}

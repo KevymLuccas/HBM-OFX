@@ -1,0 +1,79 @@
+{
+  "version": "1.0",
+  "name": "Safra",
+  "description": "Extrato bancário Safra - formato tabular padrão",
+  "locale": "pt-BR",
+  "encoding": "utf-8",
+  "header": {
+    "patterns": {
+      "period": {
+        "regex": "Período de (\\d{2}/\\d{2}/\\d{4}) a (\\d{2}/\\d{2}/\\d{4})",
+        "groups": {
+          "start": 1,
+          "end": 2
+        }
+      },
+      "account": {
+        "regex": "CONTA:\\s*(\\d+-\\d+)",
+        "groups": {
+          "account": 1
+        }
+      },
+      "cnpj": {
+        "regex": "CNPJ:\\s*([\\w\\s]+?)\\s*\\d{3}\\.\\d{3}\\.\\d{3}",
+        "groups": {
+          "name": 1
+        }
+      }
+    }
+  },
+  "section_movements": {
+    "starts_after": "LANÇAMENTOS REALIZADOS",
+    "skip_if_contains": ["SALDO TOTAL", "SALDO APLIC", "SALDO CONTA CORRENTE", "CENTRAL DE SUPORTE", "SAC E DEFICIENTES", "Página"],
+    "transaction_regex": "^(\\d{2}/\\d{2})\\s+(.+?)\\s+(.*)\\s+(\\d+|)\\s+([-]?[\\d.,]+)$",
+    "groups": {
+      "date": 1,
+      "lancamento": 2,
+      "complemento": 3,
+      "documento": 4,
+      "amount": 5
+    },
+    "date": {
+      "format_in": "%d/%m"
+    },
+    "amount": {
+      "locale": "pt-BR",
+      "negative_sign": "-"
+    }
+  },
+  "mapping": {
+    "trntype": {
+      "rules": [
+        {
+          "contains": ["PIX ENVIADO", "PIX QR"],
+          "ofx": "XFER"
+        },
+        {
+          "contains": ["PIX RECEBIDO"],
+          "ofx": "DEP"
+        },
+        {
+          "contains": ["PAGAMENTO", "TAR ", "TARIFA"],
+          "ofx": "PAYMENT"
+        },
+        {
+          "contains": ["APLICACAO", "RESGATE"],
+          "ofx": "XFER"
+        },
+        {
+          "contains": ["CREDITO COBRANCA", "LIBERACAO"],
+          "ofx": "CREDIT"
+        },
+        {
+          "contains": ["LIQUIDACAO"],
+          "ofx": "DEBIT"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,223 @@
+{
+  "version": "2.0",
+  "name": "sicoob_sisbr_cc_extrato_layout_v2",
+  "description": "Layout alternativo para extratos SICOOB (SISBR) com formatação diferente do período.",
+  "locale": "pt-BR",
+  "encoding": "UTF-8",
+  "header": {
+    "patterns": {
+      "coop": {
+        "regex": "Cooperativa\\:\\s*([0-9\\.\\-]+)\\s*/\\s*([^\\n]+?)(?=\\s+Conta\\:)",
+        "groups": {
+          "id": 1,
+          "name": 2
+        }
+      },
+      "account": {
+        "regex": "Conta\\:\\s*([0-9\\.\\-]+)\\s*/\\s*([^\\n]+?)(?=\\s+Periodo\\:)",
+        "groups": {
+          "number": 1,
+          "holder": 2
+        }
+      },
+      "period": {
+        "regex": "Periodo\\s*\\:\\s*(\\d{2}\\/\\d{2}\\/\\d{4})\\s*[-–]\\s*(\\d{2}\\/\\d{2}\\/\\d{4})",
+        "groups": {
+          "start": 1,
+          "end": 2
+        }
+      }
+    }
+  },
+  "section_movements": {
+    "starts_after": "HISTÓRICO DE MOVIMENTAÇÃO",
+    "transaction_anchor_regex": "(?P<date>\\d{2}/\\d{2})\\s*(?P<name>[A-ZÁÉÍÓÚÃÕÂÊÔÀ-Ü\\.\\-\\/\\s0-9]+?)\\s*(?:R\\$\\s*)?(?P<amount>\\d{1,3}(?:\\.\\d{3})*,\\d{2})(?P<dc>[CD\\*])",
+    "skip_if_name_startswith": [
+      "SALDO DO DIA",
+      "SALDO ANTERIOR",
+      "SALDO BLOQ",
+      "RESUMO"
+    ],
+    "multiline_capture": {
+      "until_next_anchor": true,
+      "collapse_whitespace": true
+    },
+    "doc_reference": {
+      "regex": "DOC\\.\\:\\s*(?P<doc>.+?)($|(?=\\d{2}/\\d{2}))",
+      "take": "first"
+    },
+    "date": {
+      "format_in": "dd/MM",
+      "year_hint": "from_period_start"
+    },
+    "amount": {
+      "locale": "pt-BR",
+      "sign_by_dc": {
+        "C": 1,
+        "D": -1,
+        "*": 1
+      }
+    }
+  },
+  "mapping": {
+    "trntype": {
+      "rules": [
+        {
+          "contains": [
+            "CRÉD.TED-STR",
+            "CRED.TED-STR"
+          ],
+          "ofx": "DIRECTDEP"
+        },
+        {
+          "contains": [
+            "CRED.TR.CT.INTERCRE",
+            "CRED.TR.CT"
+          ],
+          "ofx": "CREDIT"
+        },
+        {
+          "contains": [
+            "RESGATE RDC"
+          ],
+          "ofx": "CREDIT"
+        },
+        {
+          "contains": [
+            "APLICAÇÃO RDC",
+            "APLICACAO RDC"
+          ],
+          "ofx": "XFER"
+        },
+        {
+          "contains": [
+            "PIX RECEB",
+            "TRANSF. PIX RECEB"
+          ],
+          "ofx": "XFER"
+        },
+        {
+          "contains": [
+            "EST.PIX",
+            "ESTORNO PIX"
+          ],
+          "ofx": "CREDIT"
+        },
+        {
+          "contains": [
+            "PIX EMIT",
+            "TRANSF. PIX",
+            "PIX EMIT.OUTRA IF"
+          ],
+          "ofx": "XFER"
+        },
+        {
+          "contains": [
+            "TED INTERNET"
+          ],
+          "ofx": "FEE"
+        },
+        {
+          "contains": [
+            "DÉB.",
+            "DEB.",
+            "DB."
+          ],
+          "ofx": "PAYMENT"
+        },
+        {
+          "contains": [
+            "CHEQUE"
+          ],
+          "ofx": "CHECK"
+        },
+        {
+          "default": true,
+          "ofx": "OTHER"
+        }
+      ]
+    },
+    "fields": {
+      "date_iso": {
+        "from": "date",
+        "to_format": "YYYYMMDD"
+      },
+      "name": {
+        "from": "name",
+        "truncate": 32
+      },
+      "memo": {
+        "template": "{name} | {details}{doc}",
+        "details_source": "multiline_block",
+        "doc_template": " | DOC: {doc_ref}"
+      },
+      "amount_float": {
+        "from": "amount",
+        "locale": "pt-BR",
+        "signed_by": "dc"
+      },
+      "credit_bool": {
+        "from": "dc",
+        "map": {
+          "C": true,
+          "D": false,
+          "*": true
+        }
+      },
+      "doc_ref": {
+        "from": "doc"
+      }
+    },
+    "fitid": {
+      "method": "sha1",
+      "template": "{date_iso}|{amount_float:.2f}|{name}|{doc_ref}|{index}",
+      "truncate": 32
+    }
+  },
+  "balances": {
+    "final": {
+      "pattern": "(?P<date>\\d{2}/\\d{2})\\s*SALDO DO DIA\\s*(?:R\\$\\s*)?(?P<amount>\\d{1,3}(?:\\.\\d{3})*,\\d{2})(?P<dc>[CD\\*])",
+      "choose": "last",
+      "compute": "signed_amount"
+    },
+    "initial": {
+      "infer": "final - sum(transactions)"
+    }
+  },
+  "ofx_output": {
+    "currency": "BRL",
+    "account_type": "CHECKING",
+    "bank": {
+      "org": "SICOOB",
+      "bankid": "756",
+      "branchid_source": "header.coop.id",
+      "acctid_source": "header.account.number | digits_only"
+    },
+    "period": {
+      "start_source": "header.period.start",
+      "end_source": "header.period.end"
+    },
+    "transaction": {
+      "date": "fields.date_iso",
+      "trntype": "mapping.trntype",
+      "amount": "fields.amount_float",
+      "fitid": "fitid",
+      "name": "fields.name",
+      "memo": "fields.memo",
+      "docref": "fields.doc_ref"
+    },
+    "ledgerbal": {
+      "amount": "balances.final",
+      "asof": "period.end"
+    },
+    "availbal": {
+      "amount": "balances.final",
+      "asof": "period.end"
+    }
+  },
+  "validation": {
+    "require_min_transactions": 1,
+    "period_must_cover_transactions": true,
+    "memo_non_empty": true
+  }
+}

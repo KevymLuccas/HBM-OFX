@@ -1,0 +1,94 @@
+{
+  "version": "1.0",
+  "name": "Itaú",
+  "description": "Layout padrão para extratos Itaú Empresas",
+  "locale": "pt-BR",
+  "encoding": "UTF-8",
+  "header": {
+    "patterns": {
+      "account": {
+        "regex": "conta corrente:\\s*(\\d+-\\d+)",
+        "groups": {
+          "account": 1
+        }
+      },
+      "agency": {
+        "regex": "agência:\\s*(\\d+)",
+        "groups": {
+          "agency": 1
+        }
+      },
+      "period": {
+        "regex": "período:\\s*(\\d{2}/\\d{2}/\\d{4})\\s*até\\s*(\\d{2}/\\d{2}/\\d{4})",
+        "groups": {
+          "start": 1,
+          "end": 2
+        }
+      }
+    }
+  },
+  "section_movements": {
+    "starts_after": "lançamentos",
+    "transaction_anchor_regex": "(\\d{2})\\s*/\\s*(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\\s+([A-ZÀÁÂÃÇÉÊÍÓÔÕÚ][A-ZÀÁÂÃÇÉÊÍÓÔÕÚ\\s\\d]+?)\\s+(\\d{4})\\s+(-?[\\d.]+,\\d{2})",
+    "skip_if_name_startswith": [
+      "SALDO INICIAL",
+      "SALDO PARCIAL",
+      "SALDO ANTERIOR",
+      "SALDO FINAL"
+    ],
+    "multiline_capture": {
+      "until_next_anchor": false,
+      "collapse_whitespace": true
+    },
+    "doc_reference": {
+      "regex": "",
+      "take": ""
+    },
+    "date": {
+      "format_in": "DD/MMM",
+      "year_hint": "from_period"
+    },
+    "amount": {
+      "locale": "pt-BR",
+      "sign_by_dc": {}
+    }
+  },
+  "mapping": {
+    "trntype": {
+      "rules": [
+        {
+          "contains": ["PIX ENVIADO"],
+          "ofx": "XFER"
+        },
+        {
+          "contains": ["PIX TRANSF", "PIX RECEB"],
+          "ofx": "DEP"
+        },
+        {
+          "contains": ["BOLETO PAGO"],
+          "ofx": "PAYMENT"
+        },
+        {
+          "contains": ["REDE MAST", "REDE VISA", "REDE ELO"],
+          "ofx": "POS"
+        },
+        {
+          "contains": ["SISPAG TRANSF"],
+          "ofx": "XFER"
+        },
+        {
+          "contains": ["CEL PAG TIT"],
+          "ofx": "PAYMENT"
+        },
+        {
+          "contains": ["SEGURO"],
+          "ofx": "PAYMENT"
+        },
+        {
+          "contains": ["MOV TIT COB"],
+          "ofx": "DEP"
+        }
+      ]
+    }
+  }
+}

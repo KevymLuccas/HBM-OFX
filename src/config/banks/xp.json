@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "name": "XP Investimentos",
+  "description": "Extrato da XP Investimentos",
+  "locale": "pt-BR",
+  "encoding": "UTF-8",
+  "bankId": "102",
+  "header": {
+    "patterns": {
+      "period": {
+        "regex": "De:\\s+(\\d{2}/\\d{2}/\\d{4})\\s+Até:\\s+(\\d{2}/\\d{2}/\\d{4})",
+        "groups": {
+          "start": 1,
+          "end": 2
+        }
+      }
+    }
+  },
+  "section_movements": {
+    "table_format": true,
+    "columns": ["data_liq", "data_mov", "historico", "valor", "saldo"],
+    "date": {
+      "format_in": "DD/MM/YYYY",
+      "year_hint": "header"
+    },
+    "amount": {
+      "locale": "pt-BR",
+      "prefix": "R$",
+      "sign_by_value": true
+    }
+  },
+  "mapping": {
+    "trntype": {
+      "rules": [
+        { "contains": ["TED", "RETIRADA"], "ofx": "XFER" },
+        { "contains": ["RECEBIMENTO DE TED"], "ofx": "DEP" },
+        { "contains": ["RESGATE"], "ofx": "XFER" },
+        { "contains": ["APLICAÇÃO", "APLICACAO"], "ofx": "XFER" },
+        { "contains": ["IRRF", "IOF"], "ofx": "FEE" },
+        { "contains": ["RECOMPRA"], "ofx": "XFER" }
+      ]
+    }
+  }
+}

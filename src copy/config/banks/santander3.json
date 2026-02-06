@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "name": "Santander 3",
+  "description": "Extrato do Banco Santander - Layout Internet Banking Empresarial",
+  "locale": "pt-BR",
+  "encoding": "UTF-8",
+  "bankId": "033",
+  "header": {
+    "patterns": {
+      "agency": {
+        "regex": "Agência:\\s*(\\d+)",
+        "groups": {
+          "value": 1
+        }
+      },
+      "account": {
+        "regex": "Conta:\\s*(\\d+)",
+        "groups": {
+          "value": 1
+        }
+      }
+    }
+  },
+  "section_movements": {
+    "transaction_anchor_regex": "(\\d{2}/\\d{2}/\\d{4})\\s+(.+?)\\s+(-?R\\$[\\d.,]+)",
+    "skip_if_name_startswith": ["Saldo do dia", "SALDO", "Central de Atendimento"],
+    "date": {
+      "format_in": "DD/MM/YYYY",
+      "year_hint": "inline"
+    },
+    "amount": {
+      "locale": "pt-BR",
+      "sign_by_prefix": true,
+      "debit_indicator": "-"
+    }
+  },
+  "mapping": {
+    "trntype": {
+      "rules": [
+        { "contains": ["PIX ENVIADO", "Pix Enviado"], "ofx": "XFER" },
+        { "contains": ["PIX RECEBIDO", "Pix Recebido"], "ofx": "DEP" },
+        { "contains": ["TED", "TRANSFERENCIA"], "ofx": "XFER" },
+        { "contains": ["PAGAMENTO", "Pagamento", "DARF"], "ofx": "PAYMENT" },
+        { "contains": ["TARIFA", "Tarifa"], "ofx": "FEE" },
+        { "contains": ["RESGATE", "Resgate", "CONTAMAX", "Contamax"], "ofx": "XFER" },
+        { "contains": ["DEPOSITO"], "ofx": "DEP" },
+        { "contains": ["SAQUE"], "ofx": "ATM" }
+      ]
+    }
+  }
+}

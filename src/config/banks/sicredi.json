@@ -1,0 +1,79 @@
+{
+  "version": "1.0",
+  "name": "Sicredi",
+  "description": "Extrato bancário Sicredi - formato padrão com tabela",
+  "locale": "pt-BR",
+  "encoding": "utf-8",
+  "header": {
+    "patterns": {
+      "period": {
+        "regex": "Período de (\\d{2}/\\d{2}/\\d{4}) a (\\d{2}/\\d{2}/\\d{4})",
+        "groups": {
+          "start": 1,
+          "end": 2
+        }
+      },
+      "account": {
+        "regex": "Conta:\\s*(\\d+-\\d+)",
+        "groups": {
+          "account": 1
+        }
+      },
+      "cooperative": {
+        "regex": "Cooperativa:\\s*(\\d+)",
+        "groups": {
+          "coop": 1
+        }
+      }
+    }
+  },
+  "section_movements": {
+    "starts_after": "Saldo (R$)",
+    "previous_balance_regex": "SALDO ANTERIOR\\s+([\\d.,]+)",
+    "transaction_regex": "(\\d{2}/\\d{2}/\\d{4})\\s+([^\\t]+?)\\s+([A-Z0-9]+)\\s+([\\-\\d.,]+)\\s+([\\d.,]+)",
+    "groups": {
+      "date": 1,
+      "description": 2,
+      "document": 3,
+      "amount": 4,
+      "balance": 5
+    },
+    "date": {
+      "format_in": "%d/%m/%Y"
+    },
+    "amount": {
+      "locale": "pt-BR",
+      "negative_sign": "-"
+    }
+  },
+  "mapping": {
+    "trntype": {
+      "rules": [
+        {
+          "contains": ["PIX", "TED", "TRANSF"],
+          "ofx": "XFER"
+        },
+        {
+          "contains": ["PAGAMENTO", "PAG.", "DEBITO"],
+          "ofx": "PAYMENT"
+        },
+        {
+          "contains": ["TARIFA", "TAR ", "TAXA"],
+          "ofx": "FEE"
+        },
+        {
+          "contains": ["SAQUE"],
+          "ofx": "ATM"
+        },
+        {
+          "contains": ["DEPOSITO", "DEP.", "CREDITO"],
+          "ofx": "DEP"
+        },
+        {
+          "contains": ["LIQ.", "LIQUIDACAO", "COBRANCA"],
+          "ofx": "CREDIT"
+        }
+      ]
+    }
+  }
+}

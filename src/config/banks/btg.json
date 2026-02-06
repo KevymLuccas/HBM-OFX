@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "name": "BTG Pactual",
+  "description": "Extrato da Conta Investimento BTG Pactual",
+  "locale": "pt-BR",
+  "encoding": "UTF-8",
+  "bankId": "208",
+  "header": {
+    "patterns": {
+      "account": {
+        "regex": "Conta investimento\\s*(\\d+)",
+        "groups": {
+          "value": 1
+        }
+      },
+      "period": {
+        "regex": "Período de\\s*(\\d{2}/\\d{2}/\\d{2})\\s*a\\s*(\\d{2}/\\d{2}/\\d{2})",
+        "groups": {
+          "start": 1,
+          "end": 2
+        }
+      }
+    }
+  },
+  "section_movements": {
+    "transaction_anchor_regex": "(\\d{2}/\\d{2}/\\d{2})\\s+(.+?)\\s+(-?[\\d.]+,\\d{2})\\s+([\\d.]+,\\d{2})",
+    "skip_if_name_startswith": ["Saldo Anterior", "Saldo Final", "Total de"],
+    "date": {
+      "format_in": "DD/MM/YY",
+      "year_hint": "inline"
+    },
+    "amount": {
+      "locale": "pt-BR",
+      "sign_by_prefix": true,
+      "debit_indicator": "-"
+    }
+  },
+  "mapping": {
+    "trntype": {
+      "rules": [
+        { "contains": ["PIX"], "ofx": "XFER" },
+        { "contains": ["TED", "TRANSFERENCIA"], "ofx": "XFER" },
+        { "contains": ["LIQ BOLSA"], "ofx": "XFER" },
+        { "contains": ["AJ POS", "AJ NEG"], "ofx": "OTHER" },
+        { "contains": ["PAGAMENTO", "DARF"], "ofx": "PAYMENT" },
+        { "contains": ["TARIFA"], "ofx": "FEE" },
+        { "contains": ["DEPOSITO"], "ofx": "DEP" },
+        { "contains": ["SAQUE"], "ofx": "ATM" },
+        { "contains": ["RENDIMENTO"], "ofx": "INT" }
+      ]
+    }
+  }
+}

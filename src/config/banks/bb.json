@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "name": "Banco do Brasil",
+  "description": "Layout para extratos do Banco do Brasil",
+  "locale": "pt-BR",
+  "encoding": "utf-8",
+  "bank_code": "001",
+  "header": {
+    "patterns": {
+      "agency": {
+        "regex": "Agência:\\s*(\\d{4}-\\d)",
+        "groups": {
+          "agency": 1
+        }
+      },
+      "account": {
+        "regex": "Conta corrente:\\s*(\\d+-\\d)\\s+([A-Z\\s]+)",
+        "groups": {
+          "account": 1,
+          "holder": 2
+        }
+      },
+      "period": {
+        "regex": "Período do extrato:\\s*(\\d{2})\\s*/\\s*(\\d{4})",
+        "groups": {
+          "month": 1,
+          "year": 2
+        }
+      }
+    }
+  },
+  "section_movements": {
+    "starts_after": "Lançamentos",
+    "transaction_anchor_regex": "^(\\d{2}/\\d{2}/\\d{4})",
+    "skip_if_name_startswith": ["Saldo Anterior", "S A L D O"],
+    "multiline_capture": {
+      "until_next_anchor": false,
+      "collapse_whitespace": true
+    },
+    "doc_reference": {
+      "regex": "documento",
+      "take": "column"
+    },
+    "date": {
+      "format_in": "DD/MM/YYYY",
+      "year_hint": "from_period"
+    },
+    "amount": {
+      "locale": "pt-BR",
+      "sign_by_dc": {
+        "C": 1,
+        "D": -1
+      }
+    }
+  },
+  "mapping": {
+    "trntype": {
+      "rules": [
+        {
+          "contains": ["PIX", "Pix"],
+          "ofx": "PAYMENT"
+        },
+        {
+          "contains": ["TED", "Transferência"],
+          "ofx": "XFER"
+        },
+        {
+          "contains": ["Recebimento", "Recebimentos"],
+          "ofx": "DEP"
+        },
+        {
+          "contains": ["Tarifa", "Taxa"],
+          "ofx": "FEE"
+        },
+        {
+          "contains": ["BB GIRO", "Empréstimo"],
+          "ofx": "DEBIT"
+        },
+        {
+          "startswith": ["Débito"],
+          "ofx": "DEBIT"
+        },
+        {
+          "startswith": ["Crédito"],
+          "ofx": "CREDIT"
+        }
+      ]
+    }
+  }
+}
